@@ -1,0 +1,29 @@
+# Base de datos PostgreSQL para el Sistema de Historias Clínicas
+# Uso:   docker compose up -d
+# Las credenciales se leen del archivo .env (que NO se sube a git).
+# El script schema-postgresql.sql se ejecuta solo la PRIMERA vez (cuando el volumen está vacío).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hc-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bd_archivos
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en el archivo .env}
+      TZ: America/Lima
+      PGTZ: America/Lima
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - hc_pgdata:/var/lib/postgresql/data
+      - ./shcarthrosalud/shcarthrosalud/src/main/resources/db/schema-postgresql.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d bd_archivos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  hc_pgdata:
